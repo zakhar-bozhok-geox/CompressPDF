@@ -1,0 +1,208 @@
+body {
+    margin: 0;
+    background: #fefefe;
+    font-family: Consolas, SFMono-Regular, Liberation Mono, Menlo, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding-bottom: 30px;
+}
+
+/* Зона drag & drop */
+#drop_area {
+    display: flex;
+    flex-direction: column;
+    border: 2px dashed tomato;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+    width: 300px;
+    text-align: center;
+}
+
+#drop_area.dragover {
+    background-color: rgba(255, 99, 71, 0.1);
+    border-color: tomato;
+}
+
+#pdf_input {
+    display: none;
+}
+
+/* Загальний контейнер для PDF */
+#pdf_container {
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Блок для кожного PDF */
+.pdf-block {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+/* Заголовок (ім’я + кнопка Compress + повзунок) */
+.pdf-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.pdf-name {
+    font-weight: bold;
+    flex: 1; /* розтягнеться, якщо потрібно */
+}
+
+.pdf-range {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Контейнер сторінок PDF (прев’ю) */
+.pdf-pages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.pdf-page {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 300px;
+    height: auto;
+    overflow: hidden;
+}
+.pdf-page canvas {
+    width: 100%;
+    display: block;
+}
+
+
+/* Приклад кнопки, яка відображається блоком (займає ширину контейнера) */
+button.compress-btn {
+    display: block;
+    width: 100%;           /* Займати всю ширину батьківського контейнера */
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s;
+    font-family: inherit;  /* за бажанням, щоб збігався зі шрифтом сторінки */
+}
+
+button.compress-btn:hover {
+    box-shadow: 0px 1px 7px 1px rgba(255, 99, 71, 0.25);
+    transform: translateY(-0.75px);
+}
+
+/* Клас .loading – коли триває анімація «завантаження» */
+button.compress-btn.loading {
+    animation: loading 2s infinite; /* Використаємо keyframes loading */
+}
+
+/* Описані вами keyframes */
+@keyframes loading {
+    0% {
+        border: 2px solid #4285f4;
+        color: #4285f4;
+        box-shadow: 0px 1px 10px 1px rgba(66, 133, 244, 0.5);
+    }
+    33% {
+        border: 2px solid #db4437;
+        color: #db4437;
+        box-shadow: 0px 1px 10px 1px rgba(219, 68, 55, 0.5);
+    }
+    66% {
+        border: 2px solid #f4b400;
+        color: #f4b400;
+        box-shadow: 0px 1px 10px 1px rgba(244, 160, 0, 0.5);
+    }
+    100% {
+        border: 2px solid #0f9d58;
+        color: #0f9d58;
+        box-shadow: 0px 1px 10px 1px rgba(15, 157, 88, 0.5);
+    }
+}
+
+.pdf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.compress-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+    padding: 5px;
+}
+
+.compress-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+
+
+.pdf-preview {
+    margin: 10px 0;
+    text-align: center;
+}
+
+.pdf-preview img {
+    max-width: 100%;
+    max-height: 400px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+
+.pdf-sync-scroll {
+    display: flex;
+    gap: 10px;
+    max-height: 600px;
+    overflow: auto;
+    border: 1px solid #ddd;
+    margin-top: 10px;
+}
+
+.pdf-side img {
+    display: block;
+    margin: 0 auto 10px;
+    border: 1px solid #eee;
+    max-width: 100%;
+}
+
+
+
+.pdf-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+}
+
+.pdf-label {
+    font-weight: bold;
+    text-align: center;
+    background: #f8f8f8;
+    padding: 6px 10px;
+    width: 100%;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid #ddd;
+}
