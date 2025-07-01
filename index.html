@@ -25,7 +25,11 @@
 
 <input type="file" id="pdf_input" accept="application/pdf" multiple />
 
-<div id="pdf_container"></div>
+<div id="pdf_container">
+  <button class="compress-btn compress-all" style="display: none;">
+    Export all compressed PDFs
+  </button>
+</div>
 
 <div style="max-width: 0; max-height: 0; overflow: hidden;">
   <canvas id="page_canvas"></canvas>

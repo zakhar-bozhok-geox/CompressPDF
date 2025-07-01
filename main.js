@@ -36,6 +36,24 @@ pdfInput.addEventListener("input", () => {
         pdfDataArr.push(pdfData);
         createPDFBlock(pdfData);
     });
+
+    if (pdfDataArr.length > 1) {
+        const compressAllBtn = document.querySelector(".compress-all");
+        compressAllBtn.style.display = "inline-block";
+
+        compressAllBtn.addEventListener("click", () => {
+        compressAllBtn.disabled = true;
+        compressAllBtn.textContent = "Compressing...";
+        compressAllBtn.classList.add("loading");
+
+        const allPromises = pdfDataArr.map(pdfData => compressSinglePDF(pdfData));
+        Promise.all(allPromises).finally(() => {
+            compressAllBtn.disabled = false;
+            compressAllBtn.textContent = "Export all compressed PDFs";
+            compressAllBtn.classList.remove("loading");
+        });
+    });
+    }
 });
 
 function createPDFBlock(pdfData) {
@@ -125,13 +143,18 @@ function createPDFBlock(pdfData) {
         renderPagesToContainer(pdfData, compressedDiv, 1 - val);
     });
 
+    const compressBtn = document.createElement("button");
+    compressBtn.classList.add("compress-btn");
+    compressBtn.textContent = "Export compressed PDF";
+    block.appendChild(compressBtn);
+
     compressBtn.addEventListener("click", () => {
         compressBtn.disabled = true;
         compressBtn.textContent = "Compressing...";
         compressBtn.classList.add("loading");
         compressSinglePDF(pdfData).finally(() => {
             compressBtn.disabled = false;
-            compressBtn.textContent = "Compress";
+            compressBtn.textContent = "Export compressed PDF";
             compressBtn.classList.remove("loading");
         });
     });
