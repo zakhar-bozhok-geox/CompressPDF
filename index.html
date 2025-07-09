@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <title>Multiple PDF, each compressed individually</title>
   <meta name="description" content="View and compress multiple PDF files, each separately.">
 
@@ -15,27 +16,28 @@
   <script src="js/FileSaver.min-2.0.4.js"></script>
 
 </head>
+
 <body>
-<h2>Compress PDF</h2>
+  <h2>Compress PDF</h2>
 
-<div id="drop_area">
-  <p><strong>Drag PDF here</strong> or click to select</p>
-  <button>Select PDF</button>
-</div>
+  <div id="drop_area">
+    <p><strong>Drag PDF here</strong> or click to select</p>
+    <button>Select PDF</button>
+  </div>
 
-<input type="file" id="pdf_input" accept="application/pdf" multiple />
+  <input type="file" id="pdf_input" accept="application/pdf" multiple />
 
-<div id="pdf_container">
-  <button class="compress-btn compress-all" style="display: none;">
-    Export all compressed PDFs
-  </button>
-</div>
+  <div id="pdf_container">
+    <button class="compress-btn compress-all" style="display: none;">
+      Export all compressed PDFs
+    </button>
+  </div>
 
-<div style="max-width: 0; max-height: 0; overflow: hidden;">
-  <canvas id="page_canvas"></canvas>
-</div>
+  <div style="max-width: 0; max-height: 0; overflow: hidden;">
+    <canvas id="page_canvas"></canvas>
+  </div>
 
-<script src="./main.js" defer></script>
+  <script src="./main.js" defer></script>
 </body>
-</html>
 
+</html>
