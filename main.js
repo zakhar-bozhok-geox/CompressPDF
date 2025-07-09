@@ -6,7 +6,7 @@ const ctx = canvas.getContext("2d");
 
 let pdfDataArr = [];
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "js/pdf.worker.min-2.5.207.js";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "js/pdf.worker.min-5.3.93.mjs";
 
 dropArea.addEventListener("click", () => pdfInput.click());
 dropArea.addEventListener("dragover", (e) => {
@@ -23,11 +23,11 @@ dropArea.addEventListener("drop", (e) => {
   pdfInput.dispatchEvent(new Event("input"));
 });
 
-pdfInput.addEventListener("input", () => {
+pdfInput.addEventListener("input", async () => {
   const newFiles = Array.from(pdfInput.files).filter(
     (f) => f.type === "application/pdf"
   );
-  newFiles.forEach((file) => {
+  for (const file of newFiles) {
     const pdfData = {
       file,
       name: file.name,
@@ -36,10 +36,12 @@ pdfInput.addEventListener("input", () => {
       originalPagesContainer: null,
       compressedPagesContainer: null,
       previewImg: null,
+      pdfPageCanvases: [],
     };
+    const pdfPageCanvases = await createPDFBlock(pdfData);
+    pdfData.pdfPageCanvases = pdfPageCanvases;
     pdfDataArr.push(pdfData);
-    createPDFBlock(pdfData);
-  });
+  }
 
   if (pdfDataArr.length > 1) {
     const compressAllBtn = document.querySelector(".compress-all");
@@ -62,9 +64,26 @@ pdfInput.addEventListener("input", () => {
   }
 });
 
-function createPDFBlock(pdfData) {
+function debounce(fn, delay) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+async function createPDFBlock(pdfData) {
   const block = document.createElement("div");
-  block.classList.add("pdf-block");
+  block.classList.add("pdf-block", "pdf-block-loading");
+
+  const loaderBlock = document.createElement("div");
+  loaderBlock.classList.add("pdf-loader-block");
+  loaderBlock.textContent = "Processing your PDF, please wait...";
+  block.appendChild(loaderBlock);
+
+  const loader = document.createElement("span");
+  loader.classList.add("loader");
+  loaderBlock.appendChild(loader);
 
   const header = document.createElement("div");
   header.classList.add("pdf-header");
@@ -139,15 +158,26 @@ function createPDFBlock(pdfData) {
   pdfContainer.appendChild(block);
 
   syncScroll(originalDiv, compressedDiv);
-  renderPagesToContainer(pdfData, originalDiv, 1);
-  renderPagesToContainer(pdfData, compressedDiv, 1 - pdfData.quality);
+
+  const pdfDocument = await getPdfDocument(pdfData);
+  const pdfPageCanvases = await getAllRenderedPdfPageCanvases(pdfDocument);
+
+  renderPagesToContainer(pdfPageCanvases, originalDiv, 1);
+  renderPagesToContainer(pdfPageCanvases, compressedDiv, 1 - pdfData.quality);
+
+  const debouncedRender = debounce((val) => {
+    pdfData.quality = val;
+    rangeVal.textContent = val;
+    renderPagesToContainer(pdfPageCanvases, compressedDiv, 1 - val);
+  }, 200);
 
   rangeEl.addEventListener("input", (e) => {
     const val = +e.target.value;
-    pdfData.quality = val;
-    rangeVal.textContent = val;
-    renderPagesToContainer(pdfData, compressedDiv, 1 - val);
+    debouncedRender(val);
   });
+
+  block.classList.remove("pdf-block-loading");
+  loaderBlock.remove();
 
   const compressBtn = document.createElement("button");
   compressBtn.classList.add("compress-btn");
@@ -164,6 +194,8 @@ function createPDFBlock(pdfData) {
       compressBtn.classList.remove("loading");
     });
   });
+
+  return pdfPageCanvases;
 }
 
 function syncScroll(el1, el2) {
@@ -178,27 +210,47 @@ function syncScroll(el1, el2) {
   el2.addEventListener("scroll", () => sync(el2, el1));
 }
 
-async function renderPagesToContainer(pdfData, container, quality) {
+async function getPdfDocument(pdfData) {
   const arrayBuff = await pdfData.file.arrayBuffer();
   const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuff }).promise;
-  container.innerHTML = "";
+  return pdfDoc;
+}
 
-  const label = container.querySelector(".pdf-label");
-  if (label) {
-    container.appendChild(label);
+async function getRenderedPdfPageCanvas(pdfDocument, pageIndex) {
+  const page = await pdfDocument.getPage(pageIndex);
+  const viewport = page.getViewport({ scale: 1 });
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = viewport.width;
+  tempCanvas.height = viewport.height;
+  const tempCtx = tempCanvas.getContext("2d");
+  await page.render({
+    canvasContext: tempCtx,
+    viewport,
+    renderInteractiveForms: false,
+  }).promise;
+  return tempCanvas;
+}
+
+async function getAllRenderedPdfPageCanvases(pdfDocument) {
+  const canvases = [];
+  for (let i = 1; i <= pdfDocument.numPages; i++) {
+    const canvas = await getRenderedPdfPageCanvas(pdfDocument, i);
+    canvases.push(canvas);
   }
-  for (let i = 1; i <= pdfDoc.numPages; i++) {
-    const page = await pdfDoc.getPage(i);
-    const viewport = page.getViewport({ scale: 1 });
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = viewport.width;
-    tempCanvas.height = viewport.height;
-    const tempCtx = tempCanvas.getContext("2d");
-    await page.render({ canvasContext: tempCtx, viewport }).promise;
+  return canvases;
+}
+
+function renderPagesToContainer(pdfPageCanvases, container, quality) {
+  const label = container.querySelector(".pdf-label");
+  label.remove();
+  container.innerHTML = "";
+  container.appendChild(label);
+
+  for (const canvas of pdfPageCanvases) {
     let dataURL =
       quality >= 0.99
-        ? tempCanvas.toDataURL("image/png")
-        : tempCanvas.toDataURL("image/jpeg", quality);
+        ? canvas.toDataURL("image/png")
+        : canvas.toDataURL("image/jpeg", quality);
     const img = new Image();
     img.src = dataURL;
     container.appendChild(img);
@@ -209,35 +261,23 @@ function compressSinglePDF(pdfData) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      pdf2imgSingle(e.target.result, pdfData).then(resolve).catch(reject);
+      pdf2imgSingle(pdfData).then(resolve).catch(reject);
     };
     reader.readAsDataURL(pdfData.file);
   });
 }
 
-async function pdf2imgSingle(dataUrl, pdfData) {
-  const pdfDoc = await readPDF(dataUrl);
-  const imgDataMap = await renderAllPagesToImages(pdfDoc, pdfData);
+async function pdf2imgSingle(pdfData) {
+  const imgDataMap = await renderAllPagesToImages(pdfData);
   buildSinglePDF(imgDataMap, pdfData);
 }
 
-function readPDF(dataUrl) {
-  return pdfjsLib.getDocument(dataUrl).promise;
-}
-
-async function renderAllPagesToImages(pdfDoc, pdfData) {
-  const pageCount = pdfDoc.numPages;
+async function renderAllPagesToImages(pdfData) {
+  const { pdfPageCanvases } = pdfData;
   const imgDataMap = {};
   const pageQuality = 1 - pdfData.quality;
-  for (let i = 1; i <= pageCount; i++) {
-    const page = await pdfDoc.getPage(i);
-    const viewport = page.getViewport({ scale: 1 });
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = viewport.width;
-    tempCanvas.height = viewport.height;
-    const tempCtx = tempCanvas.getContext("2d");
-    await page.render({ canvasContext: tempCtx, viewport }).promise;
-    imgDataMap[i] = tempCanvas.toDataURL("image/jpeg", pageQuality);
+  for (let i = 1; i <= pdfPageCanvases.length; i++) {
+    imgDataMap[i] = pdfPageCanvases[i - 1].toDataURL("image/jpeg", pageQuality);
   }
   return imgDataMap;
 }
